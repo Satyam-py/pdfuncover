@@ -27,7 +27,7 @@ fi
 
 echo "[+] Installing Python requirements..."
 
-pip3 install -r requirements.txt
+pip3 install -r requirements.txt --break-system-packages
 
 echo "[+] Making launcher executable..."
 
