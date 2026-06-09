@@ -1,175 +1,21 @@
 #!/usr/bin/env python3
 
+# main.py
+
 import argparse
 import subprocess
 import sys
+import os
+import random
+import logging
+
+from pathlib import Path
+from colorama import Fore, Style, init
 
 from modules.metadata import extract_metadata
 from modules.embedded_extraction import extract_embedded_objects
+from modules.analyzer import analyze_results, generate_report
 
-from modules.analyzer import (
-    analyze_results,
-    generate_report
-)
-import os
-import random
-from colorama import Fore, Style, init
-init(autoreset=True)
-
-R  = Fore.RED    + Style.BRIGHT
-G  = Fore.GREEN  + Style.BRIGHT
-Y  = Fore.YELLOW + Style.BRIGHT
-C  = Fore.CYAN   + Style.BRIGHT
-W  = Fore.WHITE  + Style.BRIGHT
-D  = Fore.WHITE  + Style.DIM
-RS = Style.RESET_ALL
-
-ARTS = [
-
-f"""{R}
-
-   ▄▄▄· ·▄▄▄▄  ·▄▄▄
-  ▐█ ▀█ ██▪ ██ ▐▄▄·
-  ▄█▀▀█ ▐█· ▐█▌██▪
-  ▐█ ▪▐▌██. ██ ▐█▌▐▌
-   ▀  ▀ ▀▀▀▀▀• .▀▀▀
-
-{RS}""",
-
-f"""{G}
-
-    ____  ____  ______
-   / __ \/ __ \/ ____/
-  / /_/ / / / / /_
- / ____/ /_/ / __/
-/_/    \____/_/
-
-{RS}""",
-
-f"""{C}
-
-   ╔══════════════╗
-   ║ {W}PDF MALWARE{C} ║
-   ║   {R}ANALYZER{C}   ║
-   ╚══════════════╝
-
-{RS}""",
-
-f"""{Y}
-
-   ░▒▓███████▓▒░
-   ░▒▓█▓▒░
-   ░▒▓█▓▒░
-   ░▒▓██████▓▒░
-   ░▒▓█▓▒░
-   ░▒▓█▓▒░
-   ░▒▓█▓▒░
-
-{RS}""",
-
-f"""{R}
-
-  [ {W}PDF{R} ]═══════╗
-        ╔══════════╝
-        ║ {G}SCAN ACTIVE
-        ║ {Y}JS DETECT
-        ║ {C}IOC ANALYSIS
-        ╚═══════════>
-
-{RS}""",
-
-f"""{G}
-
-     .--------.
-    / .------. \\
-   / /        \\ \\
-   | | {R}PDF{G}  | |
-  _| |________| |_
-.' |_|        |_| '.
-'._____ ____ _____.'
-
-{RS}""",
-
-f"""{C}
-
-   ▄███████▄
-  ███{R}█{C}███{R}█{C}███
-  ███▄▄▄▄▄███
-   ▀▀▀▀▀▀▀▀▀
-    PDF SCAN
-
-{RS}""",
-
-f"""{Y}
-
-    ╭━━━╮
-    ┃╭━╮┃
-    ┃╰━╯┃
-    ┃╭━━╯
-    ┃┃
-    ╰╯
-
-{W} PDF MALWARE TOOLKIT
-
-{RS}""",
-
-f"""{R}
-
-   ___________________
-  / {W}PDF ANALYZER{R} /|
- /_________________/ |
- |                 | |
- | {G}[+] JS FOUND {R}| |
- | {Y}[+] URLS     {R}| |
- | {C}[+] EMBEDDED {R}| /
- |_________________|/
-
-{RS}""",
-
-f"""{G}
-
-   ╔═╗╔╦╗╔═╗
-   ╠═╝ ║║╠╣
-   ╩  ═╩╝╚
-
- {W}Malicious PDF Scanner
-
-{RS}""",
-
-f"""{C}
-
-         __________
-        / ________ \\
-       || PDFSCAN ||
-       ||_________||
-       |  __  __  |
-       | |  ||  | |
-       | |__||__| |
-       |  __  __()|
-       | |  ||  | |
-       | |  ||  | |
-       | |__||__| |
-       |__________|
-
-{RS}""",
-
-f"""{C}
-
-        ▄▄▄▄▄▄▄▄▄
-      ▄███████████▄
-    ▄███▀▀▀▀▀▀▀███▄
-   ███  ▄▄▄▄▄▄▄  ███
-   ███ ██▀▀▀▀▀██ ███
-   ███ ██ PDF ██ ███
-   ███ ██SCAN██ ███
-   ███ ██▄▄▄▄▄██ ███
-    ▀███▄▄▄▄▄███▀
-       ▀▀▀▀▀▀▀
-
-{RS}"""
-]
-
-# Initialize colorama
 init(autoreset=True)
 
 
@@ -177,16 +23,99 @@ init(autoreset=True)
 # COLORS
 # ==========================================
 
-RED = Fore.RED
-GREEN = Fore.GREEN
-YELLOW = Fore.YELLOW
-CYAN = Fore.CYAN
-BLUE = Fore.BLUE
-MAGENTA = Fore.MAGENTA
-WHITE = Fore.WHITE
+R  = Fore.RED     + Style.BRIGHT
+G  = Fore.GREEN   + Style.BRIGHT
+Y  = Fore.YELLOW  + Style.BRIGHT
+C  = Fore.CYAN    + Style.BRIGHT
+W  = Fore.WHITE   + Style.BRIGHT
+M  = Fore.MAGENTA + Style.BRIGHT
+D  = Fore.WHITE   + Style.DIM
+RS = Style.RESET_ALL
 
-RESET = Style.RESET_ALL
-BRIGHT = Style.BRIGHT
+
+# ==========================================
+# LOGGING
+# ==========================================
+
+os.makedirs("logs", exist_ok=True)
+
+logging.basicConfig(
+    filename="logs/main.log",
+    level=logging.ERROR,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
+
+log = logging.getLogger(__name__)
+
+
+# ==========================================
+# BANNER ARTS
+# ==========================================
+
+ARTS = [
+
+f"""{R}
+  +--------------------------------------------------------+
+  |  {W}PDFUNCOVER{R} — Malware Analysis Toolkit               |
+  +---------------------------+----------------------------+
+  |{RS}                           {R}|{RS}                            {R}|
+  |{RS}   {C}______________________{RS}  {R}|{RS}  {Y}|'''''''''''''''''''''|{RS}  {R}|
+  |{RS}  {C}|                    |{RS} {R}|{RS}  {Y}|   JAVASCRIPT ENGINE  |{RS}  {R}|
+  |{RS}  {C}| {W}>_ scanning pdf...{C} |{RS} {R}|{RS}  {Y}|_____________________|{RS}  {R}|
+  |{RS}  {C}|                    |{RS} {R}|{RS}  {R}|  eval()              |{RS}  {R}|
+  |{RS}  {C}|  {G}[==========>    {C}  |{RS} {R}|{RS}  {R}|  app.launchURL()     |{RS}  {R}|
+  |{RS}  {C}|____________________|{RS} {R}|{RS}  {R}|  unescape()         |{RS}  {R}|
+  |{RS}  {C}//____________________\\{RS}{R}|{RS}  {R}|_____________________|{RS}  {R}|
+  |{RS}       {C}| SCAN |{RS}           {R}|{RS}   {Y}\(@)(@)(@)(@)(@)(@)/{RS}    {R}|
+  +---------------------------+----------------------------+
+  |{RS}   {C}o  O  o{RS}                {R}|{RS}       {Y}.'\/\/\/'.{RS}         {R}|
+  |{RS}        {C}o  O{RS}               {R}|{RS}        {Y})========({RS}        {R}|
+  |{RS}           {C}o{RS}                {R}|{RS}      {Y}.'  IOCs    '.{RS}      {R}|
+  |{RS}  {W}|^^^^^^^^^^^^^^^^^^^^^^^^|{RS}{R}|{RS}     {Y}/  urls / ips  \\{RS}    {R}|
+  |{RS}  {W}|   EMBEDDED  FILES      |{RS}{R}|{RS}    {Y}/   domains      \\{RS}   {R}|
+  |{RS}  {W}|________________________|{RS}{R}|{RS}   {Y}|    hashes        |{RS}   {R}|
+  |{RS}  {W}|(@)(@)  secret.txt      |{RS}{R}|{RS}   {Y}"                 "{RS}   {R}|
+  |{RS}  {W}= = = = = = = = = = = = ={RS}{R}|{RS}    {Y}'_______________'{RS}     {R}|
+  +---------------------------+----------------------------+{RS}""",
+
+f"""{G}
+  +--------------------------------------------------------+
+  |  {W}PDFUNCOVER{G} — Malware Analysis Toolkit               |
+  +---------------------------+----------------------------+
+  |{RS}                           {G}|{RS}                            {G}|
+  |{RS}    {C}_____________________  {G}|{RS}                            {G}|
+  |{RS}   {C}|                   | {G}|{RS}  {Y}|'''''''''''''''''''''|{RS}  {G}|
+  |{RS}   {C}| {W}>_ scan active   {C}| {G}|{RS}  {Y}|   JAVASCRIPT ENGINE  |{RS}  {G}|
+  |{RS}   {C}|                   | {G}|{RS}  {Y}|_____________________|{RS}  {G}|
+  |{RS}   {C}|  {G}[=======>       {C}| {G}|{RS}  {R}|  eval()              |{RS}  {G}|
+  |{RS}   {C}|___________________| {G}|{RS}  {R}|  submitForm()       |{RS}  {G}|
+  |{RS}  {C}//___________________\\\\{G}|{RS}  {R}|  fromCharCode()     |{RS}  {G}|
+  |{RS}      {C}| ANALYZE |{RS}          {G}|{RS}  {R}|_____________________|{RS}  {G}|
+  |{RS}                           {G}|{RS}   {Y}\(@)(@)(@)(@)(@)(@)/   {G}|{RS}
+  +---------------------------+----------------------------+
+  |{RS}  {W}|^^^^^^^^^^^^^^^^^^^^^^^| {G}|{RS}       {Y}.'\/\/\/'.{RS}         {G}|
+  |{RS}  {W}|  EMBEDDED  FILES      | {G}|{RS}        {Y})========({RS}        {G}|
+  |{RS}  {W}|_______________________| {G}|{RS}      {Y}.'  REPORT   '.{RS}      {G}|
+  |{RS}  {W}|(@) malware.exe        | {G}|{RS}     {Y}/  txt + json   \\{RS}    {G}|
+  |{RS}  {W}|(@) secret.txt         | {G}|{RS}    {Y}/  MITRE ATT&CK   \\{RS}   {G}|
+  |{RS}  {W}= = = = = = = = = = = = {G}|{RS}   {Y}'___________________'{RS}    {G}|
+  +---------------------------+----------------------------+{RS}""",
+
+f"""{C}
+  +--------------------------------------------------------+
+  |  {W}PDFUNCOVER{C} — Malware Analysis Toolkit               |
+  +---------------------------+----------------------------+
+  |{RS}                           {C}|{RS}                            {C}|
+  |{RS}   {Y}  /\\_/\\  /\\_/\\        {C}  |{RS}  {G}[+] Header Validation  {C} |
+  |{RS}   {Y} ( o.o )( o.o )       {C} |{RS}  {G}[+] Stream Entropy     {C} |
+  |{RS}   {Y} =( Y )=( Y )=        {C} |{RS}  {G}[+] Shellcode Detect   {C} |
+  |{RS}   {Y}   )   (  )   (       {C} |{RS}  {G}[+] IOC Extraction     {C} |
+  |{RS}   {Y}  (_)-(_)(_)-(_)      {C} |{RS}  {G}[+] JS Analysis        {C} |
+  |{RS}                           {C}|{RS}  {G}[+] AcroForm / XFA      {C} |
+  |{RS}  {R} < sniffing ur PDFs   {C} |{RS}  {G}[+] MITRE ATT&CK Map   {C} |
+  |{RS}                           {C}|{RS}  {G}[+] Dual Report Output  {C} |
+  +---------------------------+----------------------------+{RS}"""
+]
 
 
 # ==========================================
@@ -197,112 +126,136 @@ def banner():
     os.system("clear")
     art = random.choice(ARTS)
     print(art)
-    print(f"\n{D}  {'─' * 42}{RS}")
-    print(f"  {G}={RS} [ {W}PDF Malware Analysis Toolkit{RS}         ]")
-    print(f"  {G}={RS} [ {C}modules{RS} : metadata / ioc / streams   ]")
-    print(f"  {G}={RS} [ {C}output{RS}  : embedded / images           ]")
-    print(f"  {R}+{RS} -- --=[ {Y}for educational use only{RS}        ]")
-    print(f"{D}  {'─' * 42}{RS}\n")
+    print(f"\n{D}  {'─' * 50}{RS}")
+    print(f"  {G}={RS} [ {W}PDFUNCOVER — PDF Malware Analysis Toolkit{RS}  ]")
+    print(f"  {G}={RS} [ {C}metadata / ioc / streams / entropy / forms{RS}  ]")
+    print(f"  {G}={RS} [ {C}output: reports (txt+json) / embedded / img{RS}  ]")
+    print(f"  {R}+{RS} --=[ {Y}for educational and research use only{RS}   ]")
+    print(f"{D}  {'─' * 50}{RS}\n")
+
 
 # ==========================================
-# SECTION PRINTING
+# OUTPUT HELPERS
 # ==========================================
 
 def print_section(title):
-
-    print(
-        f"\n{MAGENTA}{'=' * 70}"
-    )
-
-    print(
-        f"{YELLOW}{BRIGHT}[ {title} ]"
-    )
-
-    print(
-        f"{MAGENTA}{'=' * 70}{RESET}"
-    )
+    print(f"\n{M}{'=' * 70}")
+    print(f"{Y}{Style.BRIGHT}[ {title} ]")
+    print(f"{M}{'=' * 70}{RS}")
 
 
-# ==========================================
-# DICTIONARY PRINTING
-# ==========================================
+def status(msg):
+    print(f"{C}[{G}+{C}]{RS} {W}{msg}{RS}")
+
+
+def warning(msg):
+    print(f"{C}[{Y}!{C}]{RS} {Y}{msg}{RS}")
+
+
+def error(msg):
+    print(f"{C}[{R}X{C}]{RS} {R}{msg}{RS}")
+
 
 def print_dictionary(data, indent=0):
+    """
+    Recursively print a nested dict with color formatting.
+    Skips empty lists and None values cleanly.
+    """
+
+    if not isinstance(data, dict):
+        return
 
     spacing = " " * indent
 
-    if isinstance(data, dict):
+    for key, value in data.items():
 
-        for key, value in data.items():
+        # Skip internal keys
+        if key.startswith("_"):
+            continue
 
-            if isinstance(value, dict):
+        if isinstance(value, dict):
 
-                print(
-                    f"{spacing}"
-                    f"{CYAN}[+]{RESET} "
-                    f"{YELLOW}{key}"
-                )
+            print(f"{spacing}{C}[+]{RS} {Y}{key}{RS}")
+            print_dictionary(value, indent + 4)
 
-                print_dictionary(
-                    value,
-                    indent + 4
-                )
+        elif isinstance(value, list):
 
-            elif isinstance(value, list):
+            if not value:
+                continue
 
-                if not value:
-                    continue
+            print(f"{spacing}{C}[+]{RS} {Y}{key}{RS}")
 
-                print(
-                    f"{spacing}"
-                    f"{CYAN}[+]{RESET} "
-                    f"{YELLOW}{key}"
-                )
+            for item in value:
+                print(f"{' ' * (indent + 4)}{G}→{RS} {W}{item}{RS}")
 
-                for item in value:
+        elif value is None or value == "":
+            continue
 
-                    print(
-                        f"{' ' * (indent + 4)}"
-                        f"{GREEN}→{RESET} "
-                        f"{WHITE}{item}"
-                    )
-
-            else:
-
-                print(
-                    f"{spacing}"
-                    f"{GREEN}{key:<30}"
-                    f"{RESET}: "
-                    f"{WHITE}{value}"
-                )
+        else:
+            print(
+                f"{spacing}{G}{key:<32}{RS}: {W}{value}{RS}"
+            )
 
 
-# ==========================================
-# STATUS PRINTING
-# ==========================================
+def print_verdict(threat, score):
+    """
+    Print final verdict with appropriate color per threat level.
+    """
 
-def status(message):
+    color_map = {
+        "CLEAN":    G,
+        "LOW":      C,
+        "MEDIUM":   Y,
+        "HIGH":     R,
+        "CRITICAL": M,
+    }
 
-    print(
-        f"{CYAN}[{GREEN}+{CYAN}] "
-        f"{WHITE}{message}"
-    )
+    color = color_map.get(threat, M)
+
+    verdict_art = {
+        "CLEAN":    f"{G}  [✓] No significant threats detected.",
+        "LOW":      f"{C}  [~] Low risk. Review findings.",
+        "MEDIUM":   f"{Y}  [!] Medium risk. Treat with caution.",
+        "HIGH":     f"{R}  [!!] HIGH RISK. Do not open this file.",
+        "CRITICAL": f"{M}  [!!!] CRITICAL. Likely malicious payload.",
+    }
+
+    print(f"\n{M}{'=' * 70}{RS}")
+    print(f"{color}{Style.BRIGHT}  Threat Level : {threat}{RS}")
+    print(f"{color}{Style.BRIGHT}  Risk Score   : {score}/100{RS}")
+    print(verdict_art.get(threat, ""))
+    print(f"{M}{'=' * 70}{RS}")
 
 
-def warning(message):
+def validate_input(pdf_path):
+    """
+    Validate PDF path before analysis.
+    Returns (is_valid, error_message).
+    """
 
-    print(
-        f"{CYAN}[{YELLOW}!{CYAN}] "
-        f"{YELLOW}{message}"
-    )
+    path = Path(pdf_path)
 
+    if not path.exists():
+        return False, f"File not found: {pdf_path}"
 
-def error(message):
+    if not path.is_file():
+        return False, f"Not a file: {pdf_path}"
 
-    print(
-        f"{CYAN}[{RED}X{CYAN}] "
-        f"{RED}{message}"
-    )
+    if path.stat().st_size == 0:
+        return False, f"File is empty: {pdf_path}"
+
+    if path.suffix.lower() not in (".pdf", ""):
+        warning(f"File extension is not .pdf — analyzing anyway")
+
+    max_size = 50 * 1024 * 1024  # 50MB limit
+
+    if path.stat().st_size > max_size:
+        return False, (
+            f"File too large ({path.stat().st_size / 1024 / 1024:.1f} MB). "
+            f"Max supported: 50MB"
+        )
+
+    return True, ""
 
 
 # ==========================================
@@ -312,48 +265,82 @@ def error(message):
 def main():
 
     parser = argparse.ArgumentParser(
-
-        prog="pdfmal",
-
+        prog="pdfuncover",
         formatter_class=argparse.RawTextHelpFormatter,
-
-        description=f"""{RED}{BRIGHT}
-
-PDF Malware Analysis Toolkit
+        description=f"""{R}{Style.BRIGHT}
+PDFUNCOVER — PDF Malware Analysis Toolkit
 
 Examples:
   python main.py sample.pdf
   python main.py malware.pdf --normalize
+  python main.py malware.pdf --no-banner
 
 Features:
-  • Metadata Analysis
-  • JavaScript Detection
-  • IOC Extraction
-  • Embedded File Extraction
-  • Threat Scoring
-  • Report Generation
-{RESET}
-"""
+  • PDF Header Validation
+  • Metadata Extraction & Anomaly Detection
+  • JavaScript Detection + JS Content Preview
+  • Stream Entropy Analysis (Shannon)
+  • Shellcode Pattern Detection
+  • IOC Extraction (URLs / Domains / IPs)
+  • Embedded File Extraction (dual strategy)
+  • AcroForm / AA / XFA Detection
+  • MITRE ATT\\&CK Technique Mapping
+  • Dual Report Output (TXT + JSON)
+{RS}"""
     )
 
     parser.add_argument(
         "pdf",
-        help="Target PDF file path"
+        help="Path to target PDF file"
     )
 
     parser.add_argument(
         "--normalize",
         action="store_true",
-        help="Normalize PDF using qpdf"
+        help="Normalize PDF with qpdf before analysis (recommended for obfuscated PDFs)"
+    )
+
+    parser.add_argument(
+        "--no-banner",
+        action="store_true",
+        help="Skip banner (useful for scripting / piping output)"
+    )
+
+    parser.add_argument(
+        "--output-dir",
+        default="output",
+        help="Base output directory (default: output/)"
     )
 
     args = parser.parse_args()
 
-    banner()
+    # ==========================================
+    # BANNER
+    # ==========================================
+
+    if not args.no_banner:
+        banner()
+    else:
+        print(f"{G}[PDFUNCOVER]{RS} Starting analysis...\n")
+
+    # ==========================================
+    # INPUT VALIDATION
+    # ==========================================
+
+    valid, err = validate_input(args.pdf)
+
+    if not valid:
+        error(err)
+        sys.exit(1)
 
     pdf_path = args.pdf
+    status(f"Target     : {pdf_path}")
 
-    status(f"Target PDF : {pdf_path}")
+    try:
+        file_size = Path(pdf_path).stat().st_size
+        status(f"File size  : {file_size / 1024:.1f} KB")
+    except OSError:
+        pass
 
     # ==========================================
     # NORMALIZATION
@@ -361,30 +348,36 @@ Features:
 
     if args.normalize:
 
-        status("Normalizing PDF using qpdf...")
+        if not shutil.which("qpdf"):
+            warning("qpdf not installed — skipping normalization")
 
-        os.makedirs(
-            "output",
-            exist_ok=True
-        )
+        else:
 
-        normalized_pdf = (
-            "output/normalized.pdf"
-        )
+            status("Normalizing PDF with qpdf...")
 
-        subprocess.run([
-            "qpdf",
-            "--qdf",
-            "--object-streams=disable",
-            pdf_path,
-            normalized_pdf
-        ])
+            os.makedirs(args.output_dir, exist_ok=True)
 
-        pdf_path = normalized_pdf
+            normalized_pdf = os.path.join(
+                args.output_dir, "normalized.pdf"
+            )
 
-        status(
-            f"Normalized PDF : {pdf_path}"
-        )
+            result = subprocess.run(
+                [
+                    "qpdf", "--qdf",
+                    "--object-streams=disable",
+                    pdf_path,
+                    normalized_pdf
+                ],
+                capture_output=True,
+                text=True
+            )
+
+            if result.returncode == 0:
+                pdf_path = normalized_pdf
+                status(f"Normalized : {pdf_path}")
+            else:
+                warning(f"qpdf normalization failed: {result.stderr.strip()}")
+                warning("Continuing with original file")
 
     # ==========================================
     # METADATA
@@ -392,149 +385,114 @@ Features:
 
     status("Extracting metadata...")
 
-    metadata = extract_metadata(
-        pdf_path
-    )
+    try:
+        metadata = extract_metadata(pdf_path)
+    except Exception as e:
+        log.error(f"Metadata extraction failed: {e}")
+        error(f"Metadata extraction failed: {e}")
+        metadata = {}
 
-    print_section(
-        "METADATA ANALYSIS"
-    )
-
+    print_section("METADATA ANALYSIS")
     print_dictionary(metadata)
 
     # ==========================================
-    # EMBEDDED OBJECTS
+    # EMBEDDED OBJECT ANALYSIS
     # ==========================================
 
-    status(
-        "Extracting embedded objects..."
-    )
+    status("Analyzing embedded objects...")
 
-    embedded_results = (
-        extract_embedded_objects(
-            pdf_path
-        )
-    )
+    try:
+        embedded_results = extract_embedded_objects(pdf_path)
+    except Exception as e:
+        log.error(f"Embedded extraction failed: {e}")
+        error(f"Embedded extraction failed: {e}")
+        embedded_results = {}
 
-    print_section(
-        "EMBEDDED OBJECT ANALYSIS"
-    )
-
-    print_dictionary(
-        embedded_results
-    )
+    print_section("EMBEDDED OBJECT ANALYSIS")
+    print_dictionary(embedded_results)
 
     # ==========================================
     # THREAT ANALYSIS
     # ==========================================
 
-    status(
-        "Running threat analysis..."
-    )
+    status("Running threat analysis...")
 
-    analysis = analyze_results(
-        metadata,
-        embedded_results
-    )
+    try:
+        analysis = analyze_results(metadata, embedded_results)
+    except Exception as e:
+        log.error(f"Analysis failed: {e}")
+        error(f"Threat analysis failed: {e}")
+        analysis = {
+            "Threat Level": "UNKNOWN",
+            "Risk Score": 0,
+            "Suspicious Findings": [],
+            "MITRE ATT&CK": []
+        }
 
-    print_section(
-        "THREAT ANALYSIS"
-    )
-
-    print_dictionary(
-        analysis
-    )
+    print_section("THREAT ANALYSIS")
+    print_dictionary(analysis)
 
     # ==========================================
     # REPORT
     # ==========================================
 
-    status(
-        "Generating report..."
-    )
+    status("Generating report...")
 
-    report_path = generate_report(
-        pdf_path,
-        metadata,
-        embedded_results,
-        analysis
-    )
+    try:
 
-    status(
-        f"Report saved to : {report_path}"
-    )
+        report_path = generate_report(
+            pdf_path,
+            metadata,
+            embedded_results,
+            analysis
+        )
+
+        if report_path:
+            status(f"Report saved : {report_path}")
+        else:
+            warning("Report generation failed — check logs/analyzer.log")
+
+    except Exception as e:
+        log.error(f"Report generation failed: {e}")
+        warning(f"Report generation failed: {e}")
 
     # ==========================================
     # FINAL VERDICT
     # ==========================================
 
-    print_section(
-        "FINAL VERDICT"
-    )
+    print_section("FINAL VERDICT")
 
-    threat = analysis.get(
-        "Threat Level",
-        "UNKNOWN"
-    )
+    threat = analysis.get("Threat Level", "UNKNOWN")
+    score  = analysis.get("Risk Score", 0)
 
-    score = analysis.get(
-        "Risk Score",
-        0
-    )
+    print_verdict(threat, score)
 
-    if threat == "LOW":
+    # Print MITRE techniques if any
+    mitre = analysis.get("MITRE ATT&CK", [])
 
-        color = GREEN
+    if mitre:
+        print(f"\n{Y}  MITRE ATT&CK Techniques Detected:{RS}")
+        for technique in mitre:
+            print(f"  {R}[*]{RS} {W}{technique}{RS}")
 
-    elif threat == "MEDIUM":
+    print(f"\n{G}[✓] Analysis completed{RS}\n")
 
-        color = YELLOW
 
-    elif threat == "HIGH":
-
-        color = RED
-
-    else:
-
-        color = MAGENTA
-
-    print(
-        f"{BRIGHT}"
-        f"{color}"
-        f"Threat Level : {threat}"
-    )
-
-    print(
-        f"{BRIGHT}"
-        f"{color}"
-        f"Risk Score   : {score}/100"
-    )
-
-    print(RESET)
-
-    print(
-        f"{MAGENTA}{'=' * 70}"
-    )
-
-    print(
-        f"{GREEN}[✓] Analysis Completed Successfully"
-    )
-
-    print(
-        f"{MAGENTA}{'=' * 70}{RESET}"
-    )
-
+# ==========================================
+# ENTRY POINT
+# ==========================================
 
 if __name__ == "__main__":
 
+    import shutil
+
     try:
-
         main()
-
     except KeyboardInterrupt:
-
-        print(
-            f"\n{RED}[!] Interrupted by user{RESET}"
-        )
-
+        print(f"\n{R}[!] Interrupted by user{RS}")
         sys.exit(0)
+    except Exception as e:
+        log.error(f"Unhandled exception: {e}", exc_info=True)
+        print(f"\n{R}[!] Unexpected error: {e}{RS}")
+        print(f"{Y}[!] Check logs/main.log for details{RS}")
+        sys.exit(1)
