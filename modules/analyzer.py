@@ -149,14 +149,14 @@ def analyze_results(metadata, embedded_results):
         "unescape",
         "fromCharCode",
         "atob",
-        "base64",
         "app.launchURL",
         "this.exportDataObject",
         "submitForm",
         "Collab.collectEmailInfo",
         "util.printf",
-        "app.alert",
         "getAnnots"
+        # app.alert removed — it's a dialog, not obfuscation
+        # base64 removed — string match too broad, causes false positives
     ]
 
     exploit_indicators = [
@@ -368,8 +368,15 @@ def analyze_results(metadata, embedded_results):
         compression_analysis["Filters"] = safe_get(
             embedded_results, "Compression", "Filters", default=[]
         )
-        score += SCORES["compressed_objects"]
-        suspicious_findings.append("Compressed objects present")
+        # FlateDecode is standard in virtually all modern PDFs
+        # Only score if combined with other suspicious indicators
+        filters = compression_analysis["Filters"]
+        non_standard = [f for f in filters if f not in ("FlateDecode", "DCTDecode", "CCITTFaxDecode")]
+        if non_standard:
+            score += SCORES["compressed_objects"]
+            suspicious_findings.append(
+                f"Non-standard compression filters: {', '.join(non_standard)}"
+            )
 
     if safe_get(embedded_results, "Compression", "JBIG2 Warning"):
         compression_analysis["JBIG2 Detected"] = True

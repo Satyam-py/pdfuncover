@@ -745,7 +745,7 @@ def extract_embedded_objects(pdf_path):
     if shutil.which("pdf-parser"):
 
         acroform_output = run_command(
-            ["pdf-parser", "--search", "AcroForm", pdf_path]
+            ["pdf-parser", "--search", "/AcroForm", pdf_path]
         )
 
         aa_output = run_command(
@@ -753,16 +753,20 @@ def extract_embedded_objects(pdf_path):
         )
 
         xfa_output = run_command(
-            ["pdf-parser", "--search", "XFA", pdf_path]
+            ["pdf-parser", "--search", "/XFA", pdf_path]
         )
 
-        if acroform_output.strip():
+        # Require an actual object reference — not just string mention
+        # pdf-parser output contains "obj" when a real object is found
+        if acroform_output.strip() and "obj" in acroform_output:
             acroform_data["AcroForm Detected"] = True
 
-        if aa_output.strip():
+        # /AA must appear as a dictionary key in an object, not just content
+        if aa_output.strip() and "obj" in aa_output:
             acroform_data["Additional Actions Found"] = True
 
-        if xfa_output.strip():
+        # XFA requires both the tag and an actual object
+        if xfa_output.strip() and "obj" in xfa_output:
             acroform_data["XFA Form Detected"] = True
 
     results["AcroForm"] = acroform_data
